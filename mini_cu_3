@@ -1,0 +1,46 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+
+entity mini_cu_1 is
+    generic(d_w :   integer := 4);
+    port (
+        A   :   in STD_LOGIC_VECTOR(d_w-1 downto 0);
+        B   :   in STD_LOGIC_VECTOR(d_w-1 downto 0);
+        Op  :   in STD_LOGIC_VECTOR(3 downto 0);
+        F   :   out STD_LOGIC_VECTOR(d_w-1 downto 0)
+    );
+end mini_cu_1;
+
+architecture beh of mini_cu_1 is
+
+begin
+    process (A, B, Op)
+        variable shamt  :   integer;
+        variable mult   :   unsigned(7 downto 0);
+        
+    begin
+        shamt := to_integer(unsigned(B)) mod d_w;
+        case Op is
+            when "0000" =>   -- NOR
+                F <= not(A or B);
+               
+            when "0001" =>   -- XNOR
+                F <= A xnor B;
+            
+            when "0010" =>   -- MULT
+                mult := unsigned(A) * unsigned(B);
+               F <= std_logic_vector(mult(d_w-1 downto 0));
+            
+            when "0011" =>   -- LSR
+               F <= std_logic_vector(shift_right(unsigned(A), shamt));
+            
+            when others =>  -- Others
+               F <= (others => '0');
+                
+            end case;
+            
+        end process;
+
+end beh;
