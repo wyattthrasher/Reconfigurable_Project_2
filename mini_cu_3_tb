@@ -1,0 +1,48 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+entity mini_cu_1_tb is
+end mini_cu_1_tb;
+
+architecture beh of mini_cu_1_tb is
+    constant d_w    :   integer := 4;
+    
+    signal A    :   STD_LOGIC_VECTOR(d_w-1 downto 0);
+    signal B    :   STD_LOGIC_VECTOR(d_w-1 downto 0);
+    signal Op   :   STD_LOGIC_VECTOR(3 downto 0);
+    signal F    :   STD_LOGIC_VECTOR(d_w-1 downto 0);
+    
+    begin
+    
+    uut :   entity work.mini_cu_1
+        port map (
+            A => A,
+            B => B,
+            Op => Op,
+            F => F
+        );
+        
+        stim_proc   :   process
+        begin
+        
+        -- Test Case
+        A <= "0101";    B <= "1011";
+        
+        Op <= "0000";
+        wait for 10 ns;
+        
+        Op <= "0001";
+        wait for 10 ns;
+        
+        Op <= "0010";
+        wait for 10 ns;
+        
+        Op <= "0011";
+        wait for 10 ns;
+        
+        wait;
+        
+    end process;
+    
+end beh;
