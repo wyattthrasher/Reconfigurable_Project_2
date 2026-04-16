@@ -2,27 +2,33 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
+package cu_types is
+    subtype word_t is STD_LOGIC_VECTOR(3 downto 0);
+    type col_array is array (0 to 2) of word_t;
+end package;
+
+package body cu_types is end package body;
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+use work.cu_types.all;
+
 entity cu_fabric is
-    generic(d_w : integer := 4);
     port (
         clk : in STD_LOGIC;
 
-        -- External inputs (per column)
-        ext_A : in  STD_LOGIC_VECTOR(d_w-1 downto 0) := (others => '0');
-        ext_B : in  STD_LOGIC_VECTOR(d_w-1 downto 0) := (others => '0');
+        ext_A : in col_array;
+        ext_B : in col_array;
 
-        -- MUX control signals
-        sel_A : in  STD_LOGIC_VECTOR(3 downto 0*3 + 2); -- flatten later in TB
-        sel_B : in  STD_LOGIC_VECTOR(3 downto 0*3 + 2);
+        sel_A : in STD_LOGIC_VECTOR(11 downto 0);
+        sel_B : in STD_LOGIC_VECTOR(11 downto 0);
+        Op    : in STD_LOGIC_VECTOR(47 downto 0);
 
-        -- Op per CU (flattened: 12 CUs × 4 bits = 48 bits)
-        Op    : in  STD_LOGIC_VECTOR(47 downto 0);
-
-        -- Individual outputs
-        Y00, Y01, Y02 : out STD_LOGIC_VECTOR(d_w-1 downto 0);
-        Y10, Y11, Y12 : out STD_LOGIC_VECTOR(d_w-1 downto 0);
-        Y20, Y21, Y22 : out STD_LOGIC_VECTOR(d_w-1 downto 0);
-        Y30, Y31, Y32 : out STD_LOGIC_VECTOR(d_w-1 downto 0)
+        Y00, Y01, Y02 : out word_t;
+        Y10, Y11, Y12 : out word_t;
+        Y20, Y21, Y22 : out word_t;
+        Y30, Y31, Y32 : out word_t
     );
 end cu_fabric;
 
