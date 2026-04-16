@@ -1,0 +1,156 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+entity cu_fabric is
+    generic(d_w : integer := 4);
+    port (
+        clk : in STD_LOGIC;
+
+        -- External inputs (per column)
+        ext_A : in  STD_LOGIC_VECTOR(d_w-1 downto 0) := (others => '0');
+        ext_B : in  STD_LOGIC_VECTOR(d_w-1 downto 0) := (others => '0');
+
+        -- MUX control signals
+        sel_A : in  STD_LOGIC_VECTOR(3 downto 0*3 + 2); -- flatten later in TB
+        sel_B : in  STD_LOGIC_VECTOR(3 downto 0*3 + 2);
+
+        -- Op per CU (flattened: 12 CUs × 4 bits = 48 bits)
+        Op    : in  STD_LOGIC_VECTOR(47 downto 0);
+
+        -- Individual outputs
+        Y00, Y01, Y02 : out STD_LOGIC_VECTOR(d_w-1 downto 0);
+        Y10, Y11, Y12 : out STD_LOGIC_VECTOR(d_w-1 downto 0);
+        Y20, Y21, Y22 : out STD_LOGIC_VECTOR(d_w-1 downto 0);
+        Y30, Y31, Y32 : out STD_LOGIC_VECTOR(d_w-1 downto 0)
+    );
+end cu_fabric;
+
+architecture beh of cu_fabric is
+
+    -- 2D storage for CU outputs
+    type data_array is array (0 to 3, 0 to 2) of STD_LOGIC_VECTOR(d_w-1 downto 0);
+    signal Y : data_array;
+
+    -- Helper function to extract Op
+    function get_op(signal op_vec : STD_LOGIC_VECTOR; r : integer; c : integer)
+        return STD_LOGIC_VECTOR is
+        variable idx : integer := (r*3 + c)*4;
+    begin
+        return op_vec(idx+3 downto idx);
+    end function;
+
+    -- Helper function to extract select
+    function get_sel(signal sel_vec : STD_LOGIC_VECTOR; r : integer; c : integer)
+        return STD_LOGIC is
+        variable idx : integer := r*3 + c;
+    begin
+        return sel_vec(idx);
+    end function;
+
+    -- Internal muxed signals
+    signal A_mux, B_mux : data_array;
+
+begin
+
+    
+     --MUX LOGIC
+    process(all)
+    begin
+        for r in 0 to 3 loop
+            for c in 0 to 2 loop
+
+                -- A INPUT 
+                if r = 0 then
+                    -- Row 0: ext or feedback
+                    if get_sel(sel_A, r, c) = '0' then
+                        A_mux(r,c) <= ext_A;
+                    else
+                        A_mux(r,c) <= Y(3,c);
+                    end if;
+
+                elsif r = 1 then
+                    -- Row 1: from row 0
+                    if get_sel(sel_A, r, c) = '0' then
+                        A_mux(r,c) <= Y(0,c);
+                    else
+                        A_mux(r,c) <= Y(0,c);
+                    end if;
+
+                elsif r = 2 then
+                    -- Row 2: row1 or row0
+                    if get_sel(sel_A, r, c) = '0' then
+                        A_mux(r,c) <= Y(1,c);
+                    else
+                        A_mux(r,c) <= Y(0,c);
+                    end if;
+
+                else
+                    -- Row 3: row2 or row1
+                    if get_sel(sel_A, r, c) = '0' then
+                        A_mux(r,c) <= Y(2,c);
+                    else
+                        A_mux(r,c) <= Y(1,c);
+                    end if;
+                end if;
+
+                -- B INPUT
+                if r = 0 then
+                    if get_sel(sel_B, r, c) = '0' then
+                        B_mux(r,c) <= ext_B;
+                    else
+                        B_mux(r,c) <= Y(3,c);
+                    end if;
+
+                elsif r = 1 then
+                    if get_sel(sel_B, r, c) = '0' then
+                        B_mux(r,c) <= Y(0,c);
+                    else
+                        B_mux(r,c) <= Y(0,c);
+                    end if;
+
+                elsif r = 2 then
+                    if get_sel(sel_B, r, c) = '0' then
+                        B_mux(r,c) <= Y(1,c);
+                    else
+                        B_mux(r,c) <= Y(0,c);
+                    end if;
+
+                else
+                    if get_sel(sel_B, r, c) = '0' then
+                        B_mux(r,c) <= Y(2,c);
+                    else
+                        B_mux(r,c) <= Y(1,c);
+                    end if;
+                end if;
+
+            end loop;
+        end loop;
+    end process;
+
+    -- Row 0
+    CU00: entity work.mini_cu_col0 port map(clk, A_mux(0,0), B_mux(0,0), get_op(Op,0,0), Y(0,0));
+    CU01: entity work.mini_cu_col1 port map(clk, A_mux(0,1), B_mux(0,1), get_op(Op,0,1), Y(0,1));
+    CU02: entity work.mini_cu_col2 port map(clk, A_mux(0,2), B_mux(0,2), get_op(Op,0,2), Y(0,2));
+
+    -- Row 1
+    CU10: entity work.mini_cu_col0 port map(clk, A_mux(1,0), B_mux(1,0), get_op(Op,1,0), Y(1,0));
+    CU11: entity work.mini_cu_col1 port map(clk, A_mux(1,1), B_mux(1,1), get_op(Op,1,1), Y(1,1));
+    CU12: entity work.mini_cu_col2 port map(clk, A_mux(1,2), B_mux(1,2), get_op(Op,1,2), Y(1,2));
+
+    -- Row 2
+    CU20: entity work.mini_cu_col0 port map(clk, A_mux(2,0), B_mux(2,0), get_op(Op,2,0), Y(2,0));
+    CU21: entity work.mini_cu_col1 port map(clk, A_mux(2,1), B_mux(2,1), get_op(Op,2,1), Y(2,1));
+    CU22: entity work.mini_cu_col2 port map(clk, A_mux(2,2), B_mux(2,2), get_op(Op,2,2), Y(2,2));
+
+    -- Row 3
+    CU30: entity work.mini_cu_col0 port map(clk, A_mux(3,0), B_mux(3,0), get_op(Op,3,0), Y(3,0));
+    CU31: entity work.mini_cu_col1 port map(clk, A_mux(3,1), B_mux(3,1), get_op(Op,3,1), Y(3,1));
+    CU32: entity work.mini_cu_col2 port map(clk, A_mux(3,2), B_mux(3,2), get_op(Op,3,2), Y(3,2));
+
+    Y00 <= Y(0,0); Y01 <= Y(0,1); Y02 <= Y(0,2);
+    Y10 <= Y(1,0); Y11 <= Y(1,1); Y12 <= Y(1,2);
+    Y20 <= Y(2,0); Y21 <= Y(2,1); Y22 <= Y(2,2);
+    Y30 <= Y(3,0); Y31 <= Y(3,1); Y32 <= Y(3,2);
+
+end beh;
