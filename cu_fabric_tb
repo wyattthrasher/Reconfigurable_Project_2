@@ -1,6 +1,7 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
+use work.cu_types.all;
 
 entity cu_fabric_tb is
 end cu_fabric_tb;
@@ -9,18 +10,25 @@ architecture tb of cu_fabric_tb is
 
     constant d_w : integer := 4;
 
-    -- DUT signals
-    signal clk   : STD_LOGIC := '0';
+    ------------------------------------------------------------------
+    -- Clock
+    ------------------------------------------------------------------
+    signal clk : STD_LOGIC := '0';
 
-    signal ext_A : STD_LOGIC_VECTOR(d_w-1 downto 0);
-    signal ext_B : STD_LOGIC_VECTOR(d_w-1 downto 0);
+    ------------------------------------------------------------------
+    -- Inputs
+    ------------------------------------------------------------------
+    signal ext_A : col_array;
+    signal ext_B : col_array;
 
-    signal sel_A : STD_LOGIC_VECTOR(11 downto 0);
-    signal sel_B : STD_LOGIC_VECTOR(11 downto 0);
+    signal sel_A : STD_LOGIC_VECTOR(11 downto 0) := (others => '0');
+    signal sel_B : STD_LOGIC_VECTOR(11 downto 0) := (others => '0');
 
-    signal Op    : STD_LOGIC_VECTOR(47 downto 0);
+    signal Op : STD_LOGIC_VECTOR(47 downto 0) := (others => '0');
 
+    ------------------------------------------------------------------
     -- Outputs
+    ------------------------------------------------------------------
     signal Y00, Y01, Y02 : STD_LOGIC_VECTOR(d_w-1 downto 0);
     signal Y10, Y11, Y12 : STD_LOGIC_VECTOR(d_w-1 downto 0);
     signal Y20, Y21, Y22 : STD_LOGIC_VECTOR(d_w-1 downto 0);
@@ -29,18 +37,20 @@ architecture tb of cu_fabric_tb is
 begin
 
     ------------------------------------------------------------------
-    -- 🔁 Clock generation (10 ns period)
+    -- Clock generation (10 ns period)
     ------------------------------------------------------------------
     clk <= not clk after 5 ns;
 
     ------------------------------------------------------------------
-    -- 🧱 DUT
+    -- DUT
     ------------------------------------------------------------------
     DUT: entity work.cu_fabric
         port map (
-            clk   => clk,
+            clk => clk,
+
             ext_A => ext_A,
             ext_B => ext_B,
+
             sel_A => sel_A,
             sel_B => sel_B,
             Op    => Op,
@@ -52,71 +62,61 @@ begin
         );
 
     ------------------------------------------------------------------
-    -- 🧪 Stimulus
+    -- Stimulus
     ------------------------------------------------------------------
     process
-        -- helper procedure to set Op
-        procedure set_op(
-            signal op_vec : out STD_LOGIC_VECTOR;
-            r, c : integer;
-            val  : STD_LOGIC_VECTOR(3 downto 0)
-        ) is
-            variable idx : integer;
-        begin
-            idx := (r*3 + c)*4;
-            op_vec(idx+3 downto idx) <= val;
-        end procedure;
-
     begin
 
         ------------------------------------------------------------------
-        -- 🔹 Initialize
+        -- 🔹 Apply independent column inputs
         ------------------------------------------------------------------
-        ext_A <= "1011";  -- for col0
-        ext_B <= "1101";
+        ext_A(0) <= "1011"; ext_B(0) <= "1101"; -- col0
+        ext_A(1) <= "1101"; ext_B(1) <= "0010"; -- col1
+        ext_A(2) <= "0011"; ext_B(2) <= "0100"; -- col2
 
-        sel_A <= (others => '0'); -- no feedback
+        ------------------------------------------------------------------
+        -- 🔹 Disable feedback (all from upper rows only)
+        ------------------------------------------------------------------
+        sel_A <= (others => '0');
         sel_B <= (others => '0');
-
-        Op <= (others => '0');
 
         wait for 10 ns;
 
         ------------------------------------------------------------------
         -- 🔹 Row 0 Ops
         ------------------------------------------------------------------
-        set_op(Op,0,0,"0000"); -- AND
-        set_op(Op,0,1,"0100"); -- LSL
-        set_op(Op,0,2,"0010"); -- MULT
+        Op(3 downto 0)     <= "0000"; -- (0,0) AND
+        Op(7 downto 4)     <= "0100"; -- (0,1) LSL
+        Op(11 downto 8)    <= "0010"; -- (0,2) MULT
 
         ------------------------------------------------------------------
         -- 🔹 Row 1 Ops
         ------------------------------------------------------------------
-        set_op(Op,1,0,"0011"); -- RSR
-        set_op(Op,1,1,"0000"); -- NAND
-        set_op(Op,1,2,"0000"); -- NOR
+        Op(15 downto 12)   <= "0011"; -- RSR
+        Op(19 downto 16)   <= "0000"; -- NAND
+        Op(23 downto 20)   <= "0000"; -- NOR
 
         ------------------------------------------------------------------
         -- 🔹 Row 2 Ops
         ------------------------------------------------------------------
-        set_op(Op,2,0,"0010"); -- XOR
-        set_op(Op,2,1,"0010"); -- SUB
-        set_op(Op,2,2,"0011"); -- LSR
+        Op(27 downto 24)   <= "0010"; -- XOR
+        Op(31 downto 28)   <= "0010"; -- SUB
+        Op(35 downto 32)   <= "0011"; -- LSR
 
         ------------------------------------------------------------------
         -- 🔹 Row 3 Ops
         ------------------------------------------------------------------
-        set_op(Op,3,0,"0100"); -- GT
-        set_op(Op,3,1,"0000"); -- NAND
-        set_op(Op,3,2,"0001"); -- XNOR
+        Op(39 downto 36)   <= "0100"; -- GT
+        Op(43 downto 40)   <= "0000"; -- NAND
+        Op(47 downto 44)   <= "0001"; -- XNOR
 
         ------------------------------------------------------------------
-        -- 🔹 Wait for pipeline to propagate
+        -- 🔹 Let pipeline settle
         ------------------------------------------------------------------
         wait for 100 ns;
 
         ------------------------------------------------------------------
-        -- 🔚 End simulation
+        -- End simulation
         ------------------------------------------------------------------
         wait;
 
