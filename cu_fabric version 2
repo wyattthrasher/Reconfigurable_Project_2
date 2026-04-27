@@ -50,9 +50,6 @@ architecture beh of cu_fabric is
 
 begin
 
-    --------------------------------------------------------------------
-    -- REGISTER PIPELINE (CRITICAL FIX)
-    --------------------------------------------------------------------
     process(clk)
     begin
         if rising_edge(clk) then
@@ -60,13 +57,10 @@ begin
         end if;
     end process;
 
-    --------------------------------------------------------------------
-    -- EXPLICIT OPERAND ROUTING (FIXES ROW2/ROW3 ERROR)
-    --------------------------------------------------------------------
     process(all)
     begin
 
-        -- ================= ROW 0 =================
+        -- ROW 0
         A_in(0,0) <= ext_A(0);
         B_in(0,0) <= ext_B(0);
 
@@ -76,7 +70,7 @@ begin
         A_in(0,2) <= ext_A(2);
         B_in(0,2) <= ext_B(2);
 
-        -- ================= ROW 1 =================
+        -- ROW 1
         A_in(1,0) <= Y_reg(0,0);
         B_in(1,0) <= Y_reg(0,0);
 
@@ -86,7 +80,7 @@ begin
         A_in(1,2) <= Y_reg(0,2);
         B_in(1,2) <= Y_reg(0,2);
 
-        -- ================= ROW 2 (YOUR SPECIFIC DEPENDENCY FIX) =================
+        -- ROW 2
         A_in(2,0) <= Y_reg(0,0);
         B_in(2,0) <= Y_reg(1,0);
 
@@ -96,7 +90,7 @@ begin
         A_in(2,2) <= Y_reg(0,2);
         B_in(2,2) <= Y_reg(1,2);
 
-        -- ================= ROW 3 =================
+        -- ROW 3
         A_in(3,0) <= Y_reg(1,0);
         B_in(3,0) <= Y_reg(2,0);
 
@@ -108,37 +102,27 @@ begin
 
     end process;
 
-    --------------------------------------------------------------------
     -- ROW 0
-    --------------------------------------------------------------------
     CU00: entity work.mini_cu_col0 port map(clk, A_in(0,0), B_in(0,0), get_op(Op,0,0), Y(0,0));
     CU01: entity work.mini_cu_col1 port map(clk, A_in(0,1), B_in(0,1), get_op(Op,0,1), Y(0,1));
     CU02: entity work.mini_cu_col2 port map(clk, A_in(0,2), B_in(0,2), get_op(Op,0,2), Y(0,2));
 
-    --------------------------------------------------------------------
     -- ROW 1
-    --------------------------------------------------------------------
     CU10: entity work.mini_cu_col0 port map(clk, A_in(1,0), B_in(1,0), get_op(Op,1,0), Y(1,0));
     CU11: entity work.mini_cu_col1 port map(clk, A_in(1,1), B_in(1,1), get_op(Op,1,1), Y(1,1));
     CU12: entity work.mini_cu_col2 port map(clk, A_in(1,2), B_in(1,2), get_op(Op,1,2), Y(1,2));
 
-    --------------------------------------------------------------------
     -- ROW 2
-    --------------------------------------------------------------------
     CU20: entity work.mini_cu_col0 port map(clk, A_in(2,0), B_in(2,0), get_op(Op,2,0), Y(2,0));
     CU21: entity work.mini_cu_col1 port map(clk, A_in(2,1), B_in(2,1), get_op(Op,2,1), Y(2,1));
     CU22: entity work.mini_cu_col2 port map(clk, A_in(2,2), B_in(2,2), get_op(Op,2,2), Y(2,2));
 
-    --------------------------------------------------------------------
     -- ROW 3
-    --------------------------------------------------------------------
     CU30: entity work.mini_cu_col0 port map(clk, A_in(3,0), B_in(3,0), get_op(Op,3,0), Y(3,0));
     CU31: entity work.mini_cu_col1 port map(clk, A_in(3,1), B_in(3,1), get_op(Op,3,1), Y(3,1));
     CU32: entity work.mini_cu_col2 port map(clk, A_in(3,2), B_in(3,2), get_op(Op,3,2), Y(3,2));
 
-    --------------------------------------------------------------------
     -- OUTPUTS
-    --------------------------------------------------------------------
     Y00 <= Y(0,0); Y01 <= Y(0,1); Y02 <= Y(0,2);
     Y10 <= Y(1,0); Y11 <= Y(1,1); Y12 <= Y(1,2);
     Y20 <= Y(2,0); Y21 <= Y(2,1); Y22 <= Y(2,2);
