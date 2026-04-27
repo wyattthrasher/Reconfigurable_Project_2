@@ -1,0 +1,100 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+use work.cu_types.all;
+
+entity cu_fabric_tb is
+end cu_fabric_tb;
+
+architecture tb of cu_fabric_tb is
+
+    signal clk : STD_LOGIC := '0';
+
+    signal ext_A : col_array := (others => (others => '0'));
+    signal ext_B : col_array := (others => (others => '0'));
+
+    signal sel_A : STD_LOGIC_VECTOR(11 downto 0) := (others => '0');
+    signal sel_B : STD_LOGIC_VECTOR(11 downto 0) := (others => '0');
+
+    signal Op : STD_LOGIC_VECTOR(47 downto 0) := (others => '0');
+
+    signal Y00, Y01, Y02 : STD_LOGIC_VECTOR(3 downto 0);
+    signal Y10, Y11, Y12 : STD_LOGIC_VECTOR(3 downto 0);
+    signal Y20, Y21, Y22 : STD_LOGIC_VECTOR(3 downto 0);
+    signal Y30, Y31, Y32 : STD_LOGIC_VECTOR(3 downto 0);
+
+begin
+
+    clk <= not clk after 5 ns;
+
+    DUT: entity work.cu_fabric
+        port map (
+            clk => clk,
+            ext_A => ext_A,
+            ext_B => ext_B,
+            sel_A => sel_A,
+            sel_B => sel_B,
+            Op => Op,
+            Y00 => Y00, Y01 => Y01, Y02 => Y02,
+            Y10 => Y10, Y11 => Y11, Y12 => Y12,
+            Y20 => Y20, Y21 => Y21, Y22 => Y22,
+            Y30 => Y30, Y31 => Y31, Y32 => Y32
+        );
+
+    process
+    begin
+
+        ------------------------------------------------------------
+        -- INPUTS
+        ------------------------------------------------------------
+        ext_A(0) <= "1011"; ext_B(0) <= "1101";
+        ext_A(1) <= "1101"; ext_B(1) <= "0010";
+        ext_A(2) <= "0011"; ext_B(2) <= "0100";
+
+        sel_A <= (others => '0');
+        sel_B <= (others => '0');
+
+        ------------------------------------------------------------
+        -- ROW 0 OPS
+        ------------------------------------------------------------
+        Op(3 downto 0)   <= "0000"; -- AND
+        Op(7 downto 4)   <= "0100"; -- LSL
+        Op(11 downto 8)  <= "0010"; -- MULT
+
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+
+        ------------------------------------------------------------
+        -- ROW 1 OPS
+        ------------------------------------------------------------
+        Op(15 downto 12) <= "0011"; -- RSR
+        Op(19 downto 16) <= "0000"; -- NAND
+        Op(23 downto 20) <= "0000"; -- NOR
+
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+
+        ------------------------------------------------------------
+        -- ROW 2 OPS
+        ------------------------------------------------------------
+        Op(27 downto 24) <= "0010"; -- XOR
+        Op(31 downto 28) <= "0010"; -- SUB
+        Op(35 downto 32) <= "0011"; -- LSR
+
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+
+        ------------------------------------------------------------
+        -- ROW 3 OPS
+        ------------------------------------------------------------
+        Op(39 downto 36) <= "0100"; -- GT
+        Op(43 downto 40) <= "0000"; -- NAND
+        Op(47 downto 44) <= "0001"; -- XNOR
+
+        wait until rising_edge(clk);
+        wait until rising_edge(clk);
+
+        wait;
+    end process;
+
+end tb;
